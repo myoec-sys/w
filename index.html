@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="ru" class="dark scroll-smooth w-full max-w-full overflow-x-hidden">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>VibeCode — Разработка ботов, скриптов, сайтов</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            border: '#1f1f23',
+            background: '#070709',
+            surface: '#111115',
+            brand: {
+              DEFAULT: '#ff5500',
+              hover: '#e04b00',
+              glow: 'rgba(255, 85, 0, 0.32)',
+              subtle: 'rgba(255, 85, 0, 0.08)'
+            }
+          },
+          animation: {
+            'marquee': 'marquee 22s linear infinite',
+            'pulse-glow': 'pulseGlow 5s ease-in-out infinite',
+            'float-slow': 'floatSlow 6s ease-in-out infinite',
+            'border-beam': 'borderBeam 4s linear infinite'
+          },
+          keyframes: {
+            marquee: {
+              '0%': { transform: 'translateX(0%)' },
+              '100%': { transform: 'translateX(-50%)' }
+            },
+            pulseGlow: {
+              '0%, 100%': { opacity: '0.2', transform: 'scale(1)' },
+              '50%': { opacity: '0.45', transform: 'scale(1.08)' }
+            },
+            floatSlow: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-8px)' }
+            },
+            borderBeam: {
+              '0%': { transform: 'rotate(0deg)' },
+              '100%': { transform: 'rotate(360deg)' }
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      margin: 0;
+      padding: 0;
+    }
+
+    .bg-grid {
+      background-size: 28px 28px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    }
+
+    #particles-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Ротатор заголовка */
+    .word-rotator {
+      position: relative;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      min-height: 2.2em;
+    }
+    .word-slide {
+      position: absolute;
+      width: 100%;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%) translateY(24px) scale(0.96);
+      opacity: 0;
+      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      word-break: break-word;
+    }
+    .word-slide.active {
+      transform: translateY(-50%) translateY(0) scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .word-slide.prev {
+      transform: translateY(-50%) translateY(-24px) scale(0.96);
+      opacity: 0;
+    }
+
+    /* Карточки услуг */
+    .service-card {
+      position: relative;
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                  border-color 0.25s ease, 
+                  background-color 0.25s ease, 
+                  box-shadow 0.25s ease;
+      cursor: pointer;
+      user-select: none;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .service-card:active {
+      transform: scale(0.97);
+    }
+    .service-card:hover {
+      border-color: rgba(255, 85, 0, 0.5);
+      background-color: rgba(255, 85, 0, 0.04);
+      box-shadow: 0 10px 25px -10px rgba(255, 85, 0, 0.2);
+    }
+    .service-card:hover .service-icon {
+      transform: scale(1.1) rotate(-4deg);
+    }
+    .service-icon {
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .service-card.selected {
+      border-color: #ff5500;
+      background: linear-gradient(135deg, rgba(255, 85, 0, 0.16) 0%, rgba(17, 17, 21, 0.95) 100%);
+      box-shadow: 0 0 24px -3px rgba(255, 85, 0, 0.4);
+    }
+    .service-card.selected .radio-pulse {
+      animation: radioGlow 2s infinite;
+    }
+
+    @keyframes radioGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 85, 0, 0.6); }
+      50% { box-shadow: 0 0 0 5px rgba(255, 85, 0, 0); }
+    }
+
+    /* Ряды калькулятора */
+    .calc-row {
+      transition: transform 0.18s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+      cursor: pointer;
+      user-select: none;
+      animation: fadeInRow 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .calc-row:active {
+      transform: scale(0.985);
+    }
+    .calc-row:hover {
+      border-color: rgba(255, 85, 0, 0.45);
+      background-color: rgba(255, 85, 0, 0.035);
+    }
+    .calc-row.selected {
+      border-color: #ff5500;
+      background: linear-gradient(90deg, rgba(255, 85, 0, 0.15) 0%, rgba(17, 17, 21, 0.95) 100%);
+      box-shadow: 0 0 16px -3px rgba(255, 85, 0, 0.3);
+    }
+
+    @keyframes fadeInRow {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Чекбокс */
+    .check-icon-svg {
+      opacity: 0;
+      transform: scale(0.5);
+      transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .calc-row.selected .check-icon-svg {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 7px;
+      height: 14px;
+      background-color: #ff5500;
+      vertical-align: middle;
+      animation: blink 0.8s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-background text-neutral-100 antialiased selection:bg-brand selection:text-white min-h-screen flex flex-col font-sans">
+
+  <!-- ХЕДЕР -->
+  <header class="border-b border-border/80 sticky top-0 z-50 backdrop-blur-xl bg-background/85 w-full">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-2 font-mono font-bold text-base tracking-tight group transition-transform active:scale-90 duration-150">
+        <span class="w-2.5 h-2.5 rounded-full bg-brand group-hover:scale-125 transition-transform shadow-[0_0_10px_#ff5500]"></span>
+        <span class="text-white">vibe</span><span class="text-brand">code</span>
+      </a>
+
+      <div class="flex items-center gap-2 sm:gap-4">
+        <a href="https://t.me/WorkSiteBotCod" target="_blank" class="text-xs sm:text-sm text-neutral-400 hover:text-white transition-all active:scale-90 duration-150 px-3 py-1.5 flex items-center gap-1.5 rounded-lg hover:bg-surface border border-transparent hover:border-border">
+          <i data-lucide="folder-code" class="w-4 h-4 text-brand"></i>
+          <span>Работы</span>
+        </a>
+        <a href="https://t.me/vibecodeh" target="_blank" class="text-xs sm:text-sm text-neutral-400 hover:text-white transition-all active:scale-90 duration-150 px-3 py-1.5 hidden sm:flex items-center gap-1.5 rounded-lg hover:bg-surface border border-transparent hover:border-border">
+          <i data-lucide="sparkles" class="w-4 h-4 text-brand"></i>
+          <span>Канал</span>
+        </a>
+        <a href="https://t.me/myoec" target="_blank" class="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold px-3.5 py-2 rounded-lg transition-all shadow-md shadow-brand-glow active:scale-90 duration-150">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          <span>ЛС @myoec</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 bg-grid relative w-full overflow-hidden">
+    <canvas id="particles-canvas"></canvas>
+    
+    <div class="absolute top-8 left-1/2 -translate-x-1/2 w-72 sm:w-[480px] h-72 bg-brand/15 blur-[130px] rounded-full pointer-events-none animate-pulse-glow z-0"></div>
+
+    <!-- HERO СЕКЦИЯ -->
+    <section class="relative pt-12 pb-12 md:pt-20 md:pb-16 text-center px-4 max-w-4xl mx-auto flex flex-col items-center z-10">
+      
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-surface/90 text-xs text-neutral-300 backdrop-blur-md mb-5 shadow-sm animate-float-slow">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-brand"></span>
+        </span>
+        <span>Online • Разработка без наценок и задержек</span>
+      </div>
+
+      <h1 class="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight leading-tight w-full max-w-3xl">
+        <span>Разработка мощных</span>
+        
+        <div class="word-rotator my-1 text-2xl sm:text-5xl md:text-6xl">
+          <span class="word-slide active text-transparent bg-clip-text bg-gradient-to-r from-brand via-orange-400 to-amber-300 font-extrabold" data-index="0">
+            Telegram-ботов
+          </span>
+          <span class="word-slide text-transparent bg-clip-text bg-gradient-to-r from-brand via-orange-400 to-amber-300 font-extrabold" data-index="1">
+            Mini Apps (TMA)
+          </span>
+          <span class="word-slide text-transparent bg-clip-text bg-gradient-to-r from-brand via-orange-400 to-amber-300 font-extrabold" data-index="2">
+            парсеров и скриптов
+          </span>
+          <span class="word-slide text-transparent bg-clip-text bg-gradient-to-r from-brand via-orange-400 to-amber-300 font-extrabold" data-index="3">
+            сайтов и веб-страниц
+          </span>
+        </div>
+      </h1>
+
+      <p class="text-xs sm:text-base text-neutral-400 max-w-xl mx-auto mt-3 leading-relaxed">
+        Автоматизация задач, Telegram Mini Apps и написание чистого софта под ключ. Полная передача всех файлов проекта.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-3 pt-6 w-full sm:w-auto">
+        <a href="#services-calc" class="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-brand-glow transition-all active:scale-90 duration-150 text-sm sm:text-base">
+          <i data-lucide="calculator" class="w-4 h-4"></i>
+          <span>Выбрать услугу и расчет</span>
+        </a>
+        <a href="https://t.me/WorkSiteBotCod" target="_blank" class="inline-flex items-center justify-center gap-2 border border-border bg-surface/60 hover:bg-surface hover:border-neutral-700 text-neutral-200 font-medium px-5 py-3 rounded-xl transition-all active:scale-90 duration-150 text-sm sm:text-base">
+          <i data-lucide="external-link" class="w-4 h-4 text-brand"></i>
+          <span>Готовые кейсы</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- БЕГУЩАЯ СТРОКА СТЕКА -->
+    <div class="w-full border-y border-border/80 bg-surface/50 py-3 overflow-hidden relative z-10 backdrop-blur-sm">
+      <div class="flex gap-8 whitespace-nowrap animate-marquee font-mono text-xs text-neutral-400 uppercase tracking-widest">
+        <span>Python</span> • <span class="text-brand">aiogram 3</span> • <span>React</span> • <span>Telegram WebApp</span> • <span class="text-brand">Playwright</span> • <span>Tailwind CSS</span> • <span>PostgreSQL</span> • <span class="text-brand">Docker</span> • <span>FastAPI</span> • <span>SQLite</span> •
+        <span>Python</span> • <span class="text-brand">aiogram 3</span> • <span>React</span> • <span>Telegram WebApp</span> • <span class="text-brand">Playwright</span> • <span>Tailwind CSS</span> • <span>PostgreSQL</span> • <span class="text-brand">Docker</span> • <span>FastAPI</span> • <span>SQLite</span> •
+      </div>
+    </div>
+
+    <!-- ТЕРМИНАЛ -->
+    <section class="py-10 px-4 max-w-3xl mx-auto relative z-10 w-full">
+      <div class="border border-border rounded-xl bg-surface/90 backdrop-blur-md overflow-hidden shadow-2xl">
+        <div class="bg-black/70 px-4 py-2.5 border-b border-border flex items-center justify-between">
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+          </div>
+          <span class="font-mono text-[11px] text-neutral-400 flex items-center gap-1.5">
+            <i data-lucide="terminal" class="w-3.5 h-3.5 text-brand"></i> console_logs.py
+          </span>
+        </div>
+        <div class="p-4 font-mono text-xs sm:text-sm text-neutral-300 min-h-[145px] flex flex-col justify-center">
+          <div id="terminal-content" class="space-y-1"></div>
+          <div><span id="terminal-typing" class="text-brand font-semibold"></span><span class="cursor-blink"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- СЕКЦИЯ: ЧТО Я СОЗДАЮ (РОВНАЯ СЕТКА 2x2) + КАЛЬКУЛЯТОР -->
+    <section id="services-calc" class="py-14 border-t border-border/80 relative z-10 bg-surface/20 w-full">
+      <div class="max-w-4xl mx-auto px-4">
+        
+        <div class="text-center max-w-md mx-auto mb-8">
+          <span class="text-brand font-mono text-xs tracking-wider uppercase">Услуги</span>
+          <h2 class="text-2xl sm:text-3xl font-black text-white mt-1">Что я создаю</h2>
+          <p class="text-neutral-400 mt-1 text-xs sm:text-sm">
+            Выберите карточку — параметры и смета снизу обновятся автоматически.
+          </p>
+        </div>
+
+        <!-- 4 АНИМИРОВАННЫЕ КАРТОЧКИ УСЛУГ (СТРОГО ОДИНАКОВАЯ СЕТКА) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 auto-rows-fr gap-3.5 mb-8" id="service-cards-group">
+          
+          <!-- Карточка 1: Telegram Боты -->
+          <div class="service-card selected rounded-xl border border-border bg-surface/90 p-4 sm:p-5" data-val="bot" data-base="900" data-label="Telegram-бот">
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="service-icon w-9 h-9 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+                  <i data-lucide="bot" class="w-4 h-4"></i>
+                </div>
+                <span class="w-4 h-4 rounded-full border border-neutral-600 flex items-center justify-center radio-dot transition-all radio-pulse">
+                  <span class="w-2 h-2 rounded-full bg-brand transition-all scale-100"></span>
+                </span>
+              </div>
+              <h3 class="text-base font-bold text-white mb-1">Telegram Боты</h3>
+              <p class="text-neutral-400 text-xs leading-relaxed mb-4">
+                Автоматизация воронок, магазины, платные доступы в каналы, прием платежей картами, криптой и Stars.
+              </p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-border/60">
+              <span class="text-[11px] font-mono text-neutral-400">aiogram 3 / Node.js</span>
+              <span class="text-xs font-bold text-brand font-mono">до 900 ₽</span>
+            </div>
+          </div>
+
+          <!-- Карточка 2: Telegram Mini Apps -->
+          <div class="service-card rounded-xl border border-border bg-surface/90 p-4 sm:p-5" data-val="miniapp" data-base="1800" data-label="Telegram Mini App">
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="service-icon w-9 h-9 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+                  <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                </div>
+                <span class="w-4 h-4 rounded-full border border-neutral-600 flex items-center justify-center radio-dot transition-all">
+                  <span class="w-2 h-2 rounded-full bg-transparent transition-all scale-0"></span>
+                </span>
+              </div>
+              <h3 class="text-base font-bold text-white mb-1">Telegram Mini Apps</h3>
+              <p class="text-neutral-400 text-xs leading-relaxed mb-4">
+                Нативные веб-интерфейсы внутри мессенджера: каталоги, бронирование, личные кабинеты с быстрой авторизацией.
+              </p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-border/60">
+              <span class="text-[11px] font-mono text-neutral-400">React / Tailwind</span>
+              <span class="text-xs font-bold text-brand font-mono">до 1 800 ₽</span>
+            </div>
+          </div>
+
+          <!-- Карточка 3: Парсеры и Чекеры -->
+          <div class="service-card rounded-xl border border-border bg-surface/90 p-4 sm:p-5" data-val="script" data-base="800" data-label="Парсер / Скрипт">
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="service-icon w-9 h-9 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+                  <i data-lucide="terminal" class="w-4 h-4"></i>
+                </div>
+                <span class="w-4 h-4 rounded-full border border-neutral-600 flex items-center justify-center radio-dot transition-all">
+                  <span class="w-2 h-2 rounded-full bg-transparent transition-all scale-0"></span>
+                </span>
+              </div>
+              <h3 class="text-base font-bold text-white mb-1">Парсеры и Чекеры</h3>
+              <p class="text-neutral-400 text-xs leading-relaxed mb-4">
+                Сбор цен и данных с маркетплейсов и каталогов, мониторинг обновлений, выгрузка в Excel / Google Таблицы.
+              </p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-border/60">
+              <span class="text-[11px] font-mono text-neutral-400">Playwright / Python</span>
+              <span class="text-xs font-bold text-brand font-mono">до 800 ₽</span>
+            </div>
+          </div>
+
+          <!-- Карточка 4: Сайты и Веб-скрипты -->
+          <div class="service-card rounded-xl border border-border bg-surface/90 p-4 sm:p-5" data-val="site" data-base="1100" data-label="Лендинг / Сайт">
+            <div>
+              <div class="flex items-center justify-between mb-2.5">
+                <div class="service-icon w-9 h-9 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+                  <i data-lucide="globe" class="w-4 h-4"></i>
+                </div>
+                <span class="w-4 h-4 rounded-full border border-neutral-600 flex items-center justify-center radio-dot transition-all">
+                  <span class="w-2 h-2 rounded-full bg-transparent transition-all scale-0"></span>
+                </span>
+              </div>
+              <h3 class="text-base font-bold text-white mb-1">Сайты и Веб-скрипты</h3>
+              <p class="text-neutral-400 text-xs leading-relaxed mb-4">
+                Адаптивные посадочные страницы, формы с передачей лидов прямо в Telegram и кастомные скрипты.
+              </p>
+            </div>
+            <div class="flex items-center justify-between pt-3 border-t border-border/60">
+              <span class="text-[11px] font-mono text-neutral-400">HTML / JS / CSS</span>
+              <span class="text-xs font-bold text-brand font-mono">до 1 100 ₽</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- КОНФИГУРАТОР -->
+        <div class="border border-border rounded-xl bg-surface/95 backdrop-blur-md p-4 sm:p-6 space-y-6 shadow-2xl">
+          
+          <!-- Шаг 1 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-mono uppercase tracking-wider text-neutral-400" id="step1-title">
+                1. База данных и сервер:
+              </span>
+              <span class="text-[11px] font-mono text-brand" id="step1-badge">
+                [конфиг бота]
+              </span>
+            </div>
+            <div class="space-y-2" id="step1-container"></div>
+          </div>
+
+          <!-- Шаг 2 -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-mono uppercase tracking-wider text-neutral-400">
+                2. Дополнительные опции:
+              </span>
+              <span class="text-[11px] font-mono text-brand" id="step2-badge">
+                [модули бота]
+              </span>
+            </div>
+            <div class="space-y-2" id="step2-container"></div>
+          </div>
+
+          <!-- Итоговая плашка расчета -->
+          <div class="pt-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <div class="text-xs text-neutral-400">Ориентировочная сумма:</div>
+              <div class="text-2xl sm:text-3xl font-black text-brand tracking-tight flex items-baseline gap-1.5">
+                <span>до</span>
+                <span id="totalPrice">900</span>
+                <span>₽</span>
+              </div>
+            </div>
+
+            <a id="orderBtn" href="https://t.me/myoec" target="_blank" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-bold px-6 py-3.5 rounded-lg transition-all shadow-md shadow-brand-glow active:scale-90 duration-150">
+              <i data-lucide="send" class="w-4 h-4"></i>
+              <span>Заказать с этим расчетом</span>
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ССЫЛКИ И РЕСУРСЫ -->
+    <section class="py-14 border-t border-border/80 bg-surface/30 text-center px-4 relative z-10 w-full">
+      <div class="max-w-xl mx-auto space-y-4">
+        <h3 class="text-lg font-bold text-white">Контакты и ресурсы</h3>
+        <p class="text-xs sm:text-sm text-neutral-400">
+          Связывайтесь напрямую для обсуждения ТЗ или переходите на канал за обновлениями.
+        </p>
+        <div class="flex flex-wrap justify-center gap-2.5 pt-1">
+          <a href="https://t.me/myoec" target="_blank" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-surface border border-border hover:border-brand text-xs font-semibold text-neutral-200 transition-all active:scale-90 duration-150">
+            <i data-lucide="user" class="w-4 h-4 text-brand"></i>
+            <span>Личка: @myoec</span>
+          </a>
+          <a href="https://t.me/vibecodeh" target="_blank" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-surface border border-border hover:border-brand text-xs font-semibold text-neutral-200 transition-all active:scale-90 duration-150">
+            <i data-lucide="megaphone" class="w-4 h-4 text-brand"></i>
+            <span>Канал: @vibecodeh</span>
+          </a>
+          <a href="https://t.me/WorkSiteBotCod" target="_blank" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-surface border border-border hover:border-brand text-xs font-semibold text-neutral-200 transition-all active:scale-90 duration-150">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-brand"></i>
+            <span>Кейсы: WorkSiteBotCod</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="border-t border-border/70 py-6 text-center text-xs text-neutral-500 bg-background relative z-10 w-full">
+    <p>© 2026 VibeCode. Telegram-боты, TMA, парсеры и скрипты.</p>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+
+    // 1. Адаптивный Canvas с частицами
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let mouse = { x: null, y: null, radius: 100 };
+
+    window.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+    });
+
+    window.addEventListener('mouseleave', () => {
+      mouse.x = null;
+      mouse.y = null;
+    });
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 0.4;
+        this.vy = (Math.random() - 0.5) * 0.4;
+        this.size = Math.random() * 2 + 1;
+      }
+      update() {
+        if (mouse.x != null && mouse.y != null) {
+          const dx = mouse.x - this.x;
+          const dy = mouse.y - this.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          if (distance < mouse.radius) {
+            const force = (mouse.radius - distance) / mouse.radius;
+            this.x -= (dx / distance) * force * 3;
+            this.y -= (dy / distance) * force * 3;
+          }
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+      }
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 85, 0, 0.4)';
+        ctx.fill();
+      }
+    }
+
+    const count = window.innerWidth < 640 ? 18 : 45;
+    for (let i = 0; i < count; i++) {
+      particles.push(new Particle());
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 85) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(255, 85, 0, ${0.14 - dist / 85 * 0.14})`;
+            ctx.lineWidth = 0.5;
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    // 2. Ротация текста в Hero
+    const slides = document.querySelectorAll('.word-slide');
+    const rotator = document.querySelector('.word-rotator');
+    let currentIdx = 0;
+
+    function fixRotatorHeight() {
+      if (slides[currentIdx] && rotator) {
+        rotator.style.minHeight = (slides[currentIdx].offsetHeight + 6) + 'px';
+      }
+    }
+    window.addEventListener('resize', fixRotatorHeight);
+    window.addEventListener('load', fixRotatorHeight);
+
+    setInterval(() => {
+      const activeSlide = slides[currentIdx];
+      activeSlide.classList.remove('active');
+      activeSlide.classList.add('prev');
+
+      setTimeout(() => {
+        activeSlide.classList.remove('prev');
+      }, 400);
+
+      currentIdx = (currentIdx + 1) % slides.length;
+      slides[currentIdx].classList.add('active');
+      fixRotatorHeight();
+    }, 2400);
+
+    // 3. Терминал
+    const terminalLines = [
+      "import asyncio",
+      "from aiogram import Bot, Dispatcher",
+      "app = Bot(token='VIBECODE_ENGINE')",
+      "[INIT] MiniApp router attached",
+      "[SYS] Connected DB pool: PostgreSQL / SQLite",
+      "[READY] Waiting for requests... (0 errors)"
+    ];
+    let lineIdx = 0;
+    let charIdx = 0;
+    const typingEl = document.getElementById('terminal-typing');
+    const contentEl = document.getElementById('terminal-content');
+
+    function typeTerminal() {
+      if (lineIdx < terminalLines.length) {
+        const line = terminalLines[lineIdx];
+        if (charIdx < line.length) {
+          typingEl.textContent += line.charAt(charIdx);
+          charIdx++;
+          setTimeout(typeTerminal, 35);
+        } else {
+          const p = document.createElement('p');
+          p.className = lineIdx >= 3 ? "text-emerald-400 font-semibold" : "text-neutral-400";
+          p.textContent = typingEl.textContent;
+          contentEl.appendChild(p);
+          typingEl.textContent = "";
+          charIdx = 0;
+          lineIdx++;
+          setTimeout(typeTerminal, 350);
+        }
+      } else {
+        setTimeout(() => {
+          contentEl.innerHTML = "";
+          lineIdx = 0;
+          charIdx = 0;
+          typeTerminal();
+        }, 5500);
+      }
+    }
+    typeTerminal();
+
+    // 4. ДАННЫЕ СИНХРОНИЗАЦИИ КАЛЬКУЛЯТОРА
+    const configMap = {
+      bot: {
+        step1Title: "1. База данных и сервер:",
+        step1Badge: "[конфиг бота]",
+        step2Badge: "[модули бота]",
+        step1Options: [
+          { label: "Без базы данных", desc: "Простая логика без сохранения юзеров", price: 0, default: true },
+          { label: "База данных SQLite", desc: "Локальное сохранение данных пользователей", price: 350 },
+          { label: "Серверная PostgreSQL", desc: "Для высоких нагрузок и больших баз", price: 550 }
+        ],
+        step2Options: [
+          { label: "Платежные шлюзы (Crypto / Stars / ЮKassa)", desc: "Прием оплаты прямо в боте", price: 450 },
+          { label: "Админ-панель со статистикой", desc: "Управление, рассылки и просмотр юзеров", price: 350 },
+          { label: "Деплой на сервер под ключ", desc: "Настройка VPS Linux, запуск 24/7", price: 250 }
+        ]
+      },
+      miniapp: {
+        step1Title: "1. Бэкенд и авторизация:",
+        step1Badge: "[конфиг Mini App]",
+        step2Badge: "[модули Mini App]",
+        step1Options: [
+          { label: "Без сохранения (Статика)", desc: "Фронтенд без своего сервера и базы", price: 0, default: true },
+          { label: "Бэкенд + SQLite", desc: "Сохранение корзины и баланса юзера", price: 450 },
+          { label: "Бэкенд + PostgreSQL", desc: "Полноценная серверная база данных", price: 650 }
+        ],
+        step2Options: [
+          { label: "Привязка Telegram WebApp API", desc: "Валидация initData, профиль юзера", price: 350 },
+          { label: "Корзина и витрина товаров", desc: "Интерактивный каталог с подсчетом суммы", price: 550 },
+          { label: "Анимации и оптимизация под экраны", desc: "Плавный нативный UI на смартфонах", price: 300 }
+        ]
+      },
+      script: {
+        step1Title: "1. Хостинг и среда запуска:",
+        step1Badge: "[конфиг скрипта]",
+        step2Badge: "[модули скрипта]",
+        step1Options: [
+          { label: "Локальный запуск на вашем ПК", desc: "Запуск вручную через консоль или файл", price: 0, default: true },
+          { label: "Хостинг VPS за 100 ₽/мес", desc: "Настройка облачного сервера для работы 24/7", price: 100 },
+          { label: "Сервер с автозапуском Cron", desc: "Запуск строго по расписанию раз в час/сутки", price: 250 }
+        ],
+        step2Options: [
+          { label: "Экспорт в Excel / Google Sheets", desc: "Авто-выгрузка данных в удобные таблицы", price: 350 },
+          { label: "Обход защиты и антикапча", desc: "Ротация прокси, обход блокировок", price: 400 },
+          { label: "Уведомления в Telegram-канал", desc: "Мгновенные алерты при появлении товара/цены", price: 250 }
+        ]
+      },
+      site: {
+        step1Title: "1. Хостинг и публикация сайта:",
+        step1Badge: "[конфиг сайта]",
+        step2Badge: "[модули сайта]",
+        step1Options: [
+          { label: "Бесплатный хостинг (Vercel / GitHub Pages)", desc: "Быстрый SSL, без ежемесячной оплаты", price: 0, default: true },
+          { label: "Привязка вашего домена (.ru / .com)", desc: "Настройка DNS и SSL сертификата", price: 200 },
+          { label: "Свой сервер VPS с бэкендом", desc: "Для работы с БД и личными кабинетами", price: 350 }
+        ],
+        step2Options: [
+          { label: "Форма заявок в Telegram-бота", desc: "Мгновенное получение лидов с сайта в Telegram", price: 300 },
+          { label: "Адаптивная верстка под все смартфоны", desc: "100% идеальное отображение на мобилках", price: 350 },
+          { label: "Базовая SEO-оптимизация и OG-теги", desc: "Превью в соцсетях и ссылки", price: 200 }
+        ]
+      }
+    };
+
+    let basePrice = 900;
+    let baseLabel = 'Telegram-бот';
+    let selectedStep1 = { price: 0, label: 'Без базы данных' };
+    let selectedStep2 = [];
+    let animatedPrice = 900;
+
+    const serviceCards = document.querySelectorAll('#service-cards-group .service-card');
+    const step1TitleEl = document.getElementById('step1-title');
+    const step1BadgeEl = document.getElementById('step1-badge');
+    const step2BadgeEl = document.getElementById('step2-badge');
+    const step1Container = document.getElementById('step1-container');
+    const step2Container = document.getElementById('step2-container');
+    const totalPriceEl = document.getElementById('totalPrice');
+    const orderBtn = document.getElementById('orderBtn');
+
+    function animateValue(start, end, duration) {
+      if (start === end) {
+        totalPriceEl.textContent = end.toLocaleString('ru-RU');
+        return;
+      }
+      const range = end - start;
+      let current = start;
+      const increment = end > start ? Math.ceil(range / (duration / 16)) : Math.floor(range / (duration / 16));
+      const stepTime = 16;
+      const timer = setInterval(() => {
+        current += increment;
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+          current = end;
+          clearInterval(timer);
+        }
+        totalPriceEl.textContent = current.toLocaleString('ru-RU');
+      }, stepTime);
+    }
+
+    function syncCalculator(typeKey) {
+      const cfg = configMap[typeKey];
+      selectedStep2 = [];
+
+      step1TitleEl.textContent = cfg.step1Title;
+      step1BadgeEl.textContent = cfg.step1Badge;
+      step2BadgeEl.textContent = cfg.step2Badge;
+
+      // Рендер Шага 1
+      step1Container.innerHTML = '';
+      cfg.step1Options.forEach((opt, idx) => {
+        const row = document.createElement('div');
+        const isSel = idx === 0;
+        row.className = `calc-row ${isSel ? 'selected' : ''} flex items-center justify-between p-3 rounded-lg border border-border bg-black/40`;
+        row.style.animationDelay = `${idx * 0.04}s`;
+        row.dataset.price = opt.price;
+        row.dataset.label = opt.label;
+
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-4 h-4 rounded-full border border-neutral-600 flex items-center justify-center radio-dot transition-transform">
+              <span class="w-2 h-2 rounded-full ${isSel ? 'bg-brand' : 'bg-transparent'}"></span>
+            </div>
+            <div>
+              <div class="text-xs sm:text-sm font-semibold text-white">${opt.label}</div>
+              <div class="text-[11px] text-neutral-400">${opt.desc}</div>
+            </div>
+          </div>
+          <div class="text-xs sm:text-sm font-mono font-bold ${opt.price === 0 ? 'text-neutral-400' : 'text-brand'}">
+            ${opt.price === 0 ? '0 ₽' : `до ${opt.price} ₽`}
+          </div>
+        `;
+
+        if (isSel) {
+          selectedStep1 = { price: opt.price, label: opt.label };
+        }
+
+        row.addEventListener('click', () => {
+          step1Container.querySelectorAll('.calc-row').forEach(r => {
+            r.classList.remove('selected');
+            r.querySelector('.radio-dot span').className = 'w-2 h-2 rounded-full bg-transparent';
+          });
+          row.classList.add('selected');
+          row.querySelector('.radio-dot span').className = 'w-2 h-2 rounded-full bg-brand';
+
+          selectedStep1 = { price: parseInt(row.dataset.price), label: row.dataset.label };
+          recalc();
+        });
+
+        step1Container.appendChild(row);
+      });
+
+      // Рендер Шага 2
+      step2Container.innerHTML = '';
+      cfg.step2Options.forEach((opt, idx) => {
+        const row = document.createElement('div');
+        row.className = 'calc-row flex items-center justify-between p-3 rounded-lg border border-border bg-black/40';
+        row.style.animationDelay = `${(idx + 2) * 0.04}s`;
+        row.dataset.price = opt.price;
+        row.dataset.label = opt.label;
+
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="check-box-wrapper w-4 h-4 rounded border border-neutral-600 flex items-center justify-center transition-colors bg-black/50">
+              <svg class="check-icon-svg w-3 h-3 text-brand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs sm:text-sm font-semibold text-white">${opt.label}</div>
+              <div class="text-[11px] text-neutral-400">${opt.desc}</div>
+            </div>
+          </div>
+          <div class="text-xs sm:text-sm font-mono font-bold text-brand">до ${opt.price} ₽</div>
+        `;
+
+        row.addEventListener('click', () => {
+          row.classList.toggle('selected');
+          const box = row.querySelector('.check-box-wrapper');
+          if (row.classList.contains('selected')) {
+            box.classList.remove('border-neutral-600');
+            box.classList.add('border-brand', 'bg-brand/10');
+          } else {
+            box.classList.remove('border-brand', 'bg-brand/10');
+            box.classList.add('border-neutral-600');
+          }
+
+          selectedStep2 = Array.from(step2Container.querySelectorAll('.calc-row.selected'))
+            .map(r => ({ price: parseInt(r.dataset.price), label: r.dataset.label }));
+
+          recalc();
+        });
+
+        step2Container.appendChild(row);
+      });
+
+      recalc();
+    }
+
+    // Слушатели для карточек услуг
+    serviceCards.forEach(card => {
+      card.addEventListener('click', () => {
+        serviceCards.forEach(c => {
+          c.classList.remove('selected');
+          c.querySelector('.radio-dot').classList.remove('radio-pulse');
+          const dot = c.querySelector('.radio-dot span');
+          dot.classList.remove('bg-brand', 'scale-100');
+          dot.classList.add('bg-transparent', 'scale-0');
+        });
+        card.classList.add('selected');
+        card.querySelector('.radio-dot').classList.add('radio-pulse');
+        const activeDot = card.querySelector('.radio-dot span');
+        activeDot.classList.remove('bg-transparent', 'scale-0');
+        activeDot.classList.add('bg-brand', 'scale-100');
+
+        basePrice = parseInt(card.dataset.base);
+        baseLabel = card.dataset.label;
+        syncCalculator(card.dataset.val);
+      });
+    });
+
+    function recalc() {
+      let total = basePrice + selectedStep1.price;
+      selectedStep2.forEach(item => total += item.price);
+
+      animateValue(animatedPrice, total, 200);
+      animatedPrice = total;
+
+      const addonsText = selectedStep2.length 
+        ? selectedStep2.map(a => a.label).join('; ') 
+        : 'базовый комплект';
+
+      const msg = `Привет! Собрал расчет на сайте:%0A• Направление: ${baseLabel}%0A• Среда / БД: ${selectedStep1.label}%0A• Доп. опции: ${addonsText}%0A• Итоговая вилка: до ${total} ₽%0AХочу обсудить запуск!`;
+
+      orderBtn.href = `https://t.me/myoec?text=${msg}`;
+    }
+
+    syncCalculator('bot');
+  </script>
+</body>
+</html>
